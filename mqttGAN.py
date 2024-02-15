@@ -5,18 +5,19 @@ import csv
 
 # npz 파일 읽기
 data_npz = np.load('D:/workspace/GAN/Malware-GAN-master/data.npz')
+
 '''
 # npz 파일 내의 데이터 key 확인
 for key in data_npz.files:
     print(key) 
 
 # npz 파일 내의 데이터 확인
-for key in data.keys():
+for key in data_npz.keys():
     print(f"Key: {key}")
     print(data_npz[key])
 
 # 특정 배열에 접근
-specific_array = data_npz['xmal']  # 배열 이름에 따라 변경
+specific_array = data_npz['yben']  # 배열 이름에 따라 변경
 print("Specific Array:")
 print(specific_array)
 
@@ -25,11 +26,16 @@ for k in data_npz.files:
     print(f"{k}: {data_npz[k].shape}")
 '''
 
-
-# csv to npz
 data_csv = pd.read_csv('D:/workspace/GAN/swGAN/data/mqttdataset_reduced.csv')
 
+# target 열에 대해 레이블 매핑
+data_csv['label'] = data_csv['target'].map({'legitimate': 0, 'dos': 1, 'slowite': 1, 'bruteforce': 1, 'malformed': 1, 'flood': 1})
 
+# 매핑 후 데이터를 CSV 파일로 저장
+# data_csv.to_csv('D:\workspace\GAN\swGAN\data\origin_data_csv_mapping.csv', index=False)
+
+
+# csv to npz
 '''
 my_data = np.genfromtxt(data_csv, delimiter=',')
 np.save('my_data.npy', my_data)
@@ -49,14 +55,13 @@ arrays_dict = {column: data_csv[column].values for column in data_csv.columns}
 # 딕셔너리 확인
 print(arrays_dict)
 
+'''
 # 각 키에 대한 데이터 크기 출력
 for key, array in arrays_dict.items():
     print(f"{key}의 데이터 크기: {len(array)}")
-    
 '''
 
-
-
+'''
 # CSV 파일 로드
 with open('D:/workspace/GAN/swGAN/data/mqttdataset_reduced.csv', 'r') as csvfile:
     reader = csv.DictReader(csvfile)
@@ -74,20 +79,17 @@ arrays_dict = {key: np.array(value) for key, value in data_dict.items()}
 
 # 결과 확인
 print(arrays_dict)                
-
 '''
 
 
-
-
-
+'''
 # key 목록 확인
 print("Keys:", arrays_dict.keys())
 
 # key 갯수 확인
 key_count = len(arrays_dict.keys())
 print("Number of keys:", key_count)
-
+'''
 
 
 
