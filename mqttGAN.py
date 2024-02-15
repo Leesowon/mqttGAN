@@ -26,63 +26,55 @@ for k in data_npz.files:
     print(f"{k}: {data_npz[k].shape}")
 '''
 
+# csv 파일 읽기
 data_csv = pd.read_csv('D:/workspace/GAN/swGAN/data/mqttdataset_reduced.csv')
 
-# target 열에 대해 레이블 매핑
+# target 열에 대해 레이블 매핑 (ben : 0, mal : 1)
 data_csv['label'] = data_csv['target'].map({'legitimate': 0, 'dos': 1, 'slowite': 1, 'bruteforce': 1, 'malformed': 1, 'flood': 1})
 
 # 매핑 후 데이터를 CSV 파일로 저장
 # data_csv.to_csv('D:\workspace\GAN\swGAN\data\origin_data_csv_mapping.csv', index=False)
 
+# 정상과 악성 데이터를 분리
+normal_data = data_csv[data_csv['label'] == 0]
+malicious_data = data_csv[data_csv['label'] == 1]
 
 # csv to npz
 '''
-my_data = np.genfromtxt(data_csv, delimiter=',')
-np.save('my_data.npy', my_data)
-
-# csv 용량이 클 때
-df_csv = pd.read_csv(data_csv, delimiter=',')
-df_csv = df_csv.to_numpy()
-np.save('my_data', df_csv)
-
-print('done')
-'''
-
-
 # 각 열을 NumPy 배열로 변환
 arrays_dict = {column: data_csv[column].values for column in data_csv.columns}
 
 # 딕셔너리 확인
 print(arrays_dict)
+'''
+
+# 정상 데이터를 NumPy 배열로 변환
+x_normal = normal_data.drop(['target', 'label'], axis=1).values
+y_normal = normal_data['label'].values
+
+# 악성 데이터를 NumPy 배열로 변환
+x_mal = malicious_data.drop(['target', 'label'], axis=1).values
+y_mal = malicious_data['label'].values
+
+'''
+# 데이터 확인
+print(x_mal)
+
+# 결과 확인
+print("Normal Data:")
+print("x_normal shape:", x_normal.shape)
+print("y_normal shape:", y_normal.shape)
+
+print("\nMalicious Data:")
+print("x_mal shape:", x_mal.shape)
+print("y_mal shape:", y_mal.shape)
+'''
 
 '''
 # 각 키에 대한 데이터 크기 출력
 for key, array in arrays_dict.items():
     print(f"{key}의 데이터 크기: {len(array)}")
-'''
 
-'''
-# CSV 파일 로드
-with open('D:/workspace/GAN/swGAN/data/mqttdataset_reduced.csv', 'r') as csvfile:
-    reader = csv.DictReader(csvfile)
-    data_dict = {key: [] for key in reader.fieldnames}
-    for row in reader:
-        for key in row.keys():
-            if row[key] == '':
-                # 기본값 설정
-                data_dict[key].append(0)  # 또는 다른 값을 설정
-            else:
-                data_dict[key].append(float(row[key]))  # 또는 다른 형식으로 변환
-                
-# 딕셔너리의 각 값들을 NumPy 배열로 변환
-arrays_dict = {key: np.array(value) for key, value in data_dict.items()}
-
-# 결과 확인
-print(arrays_dict)                
-'''
-
-
-'''
 # key 목록 확인
 print("Keys:", arrays_dict.keys())
 
@@ -92,19 +84,29 @@ print("Number of keys:", key_count)
 '''
 
 
+# 각 파일을 .npy로 저장
 
+# 정상 데이터 바이너리로 저장
+np.save('x_normal.npy', x_normal)
+np.save('y_normal.npy', y_normal)
+
+# 악성 데이터 바이너리로 저장
+np.save('x_mal.npy', x_mal)
+np.save('y_mal.npy', y_mal)
+
+
+# 데이터를 바이너리로 변환하여 .npz로 저장
+np.savez('D:\workspace\GAN\swGAN\data\mqtt_data.npz', x_normal=x_normal, y_normal=y_normal, x_mal=x_mal, y_mal=y_mal)
+
+# 파일 확인
+# mqttdata_npz = np.load('D:\workspace\GAN\swGAN\data\mqtt_data.npz')
+mqttdata_npz = np.load('D:\workspace\GAN\swGAN\data\mqtt_data.npz', allow_pickle=True)
+
+# 특정 배열에 접근
+specific_array = mqttdata_npz['x_mal']  # 배열 이름에 따라 변경
+print("Specific Array:")
+print(specific_array)
 
 # npz 파일 닫기 (필수적으로 닫아야 함)
 data_npz.close()
-
-'''
-print("----------train70_reduced.csv 크기 확인----------")
-# 데이터를 배열로 변환
-data_array = data_csv.to_numpy()
-
-# 배열의 크기 확인
-array_shape = data_array.shape
-
-# 결과 출력
-print(f"CSV 파일을 배열로 변환한 크기: {array_shape}")
-'''
+mqttdata_npz.close()
