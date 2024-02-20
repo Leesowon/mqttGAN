@@ -83,7 +83,7 @@ key_count = len(arrays_dict.keys())
 print("Number of keys:", key_count)
 '''
 
-
+'''
 # 각 파일을 .npy로 저장
 
 # 정상 데이터 바이너리로 저장
@@ -97,16 +97,18 @@ np.save('y_mal.npy', y_mal)
 
 # 데이터를 바이너리로 변환하여 .npz로 저장
 np.savez('D:\workspace\GAN\swGAN\data\mqtt_data.npz', x_normal=x_normal, y_normal=y_normal, x_mal=x_mal, y_mal=y_mal)
+'''
 
-# 파일 확인
-# mqttdata_npz = np.load('D:\workspace\GAN\swGAN\data\mqtt_data.npz')
-mqttdata_npz = np.load('D:\workspace\GAN\swGAN\data\mqtt_data.npz', allow_pickle=True)
+mqtt_data_npz = np.load('D:\workspace\GAN\swGAN\data\mqtt_data.npz', allow_pickle=True)
 
-# 특정 배열에 접근
-specific_array = mqttdata_npz['x_mal']  # 배열 이름에 따라 변경
+# data 확인
+for k in mqtt_data_npz.files:
+    print(f"{k}: {mqtt_data_npz[k].shape}")
+
+specific_array = mqtt_data_npz['x_mal'] 
 print("Specific Array:")
 print(specific_array)
 
-# npz 파일 닫기 (필수적으로 닫아야 함)
+# npz 파일 닫기 (필수적으로 닫아야 함!)
 data_npz.close()
-mqttdata_npz.close()
+mqtt_data_npz.close()
