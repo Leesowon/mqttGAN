@@ -1,114 +1,136 @@
+from keras.layers import Input, Dense, Activation
+from keras.layers import Maximum, Concatenate
+from keras.models import Model
+from keras.optimizers import Adam
+
+from sklearn.model_selection import train_test_split
+
+import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import os
-import csv
+import tensorflow as tf
 
-# npz 파일 읽기
-data_npz = np.load('D:/workspace/GAN/Malware-GAN-master/data.npz')
+class mqttGAN():
+    def __init__(self, filename='D:/workspace/GAN/swGAN/data/mqtt_data.npz'):
+        pass
+    
+   
 
-'''
-# npz 파일 내의 데이터 key 확인
-for key in data_npz.files:
-    print(key) 
+    def build_generator(self):
 
-# npz 파일 내의 데이터 확인
-for key in data_npz.keys():
-    print(f"Key: {key}")
-    print(data_npz[key])
+        example = Input(shape=(self.apifeature_dims,))
+        noise = Input(shape=(self.z_dims,))
+        x = Concatenate(axis=1)([example, noise])
+        for dim in self.generator_layers[1:]:
+            x = Dense(dim)(x)
+        x = Activation(activation='sigmoid')(x)
+        x = Maximum()([example, x])
+        generator = Model([example, noise], x, name='generator')
+        generator.summary()
+        return generator
+    
+    def load_data(self):
+        data = np.load(self.filename)
+        xmal, ymal, xben, yben = data['x_mal'], data['y_mal'], data['x_normal'], data['y_normal']
+        print('sw--success def data_load!')
+        return (xmal, ymal), (xben, yben)
+    
+    def train(self, epochs, batch_size=32, is_first=1):
 
-# 특정 배열에 접근
-specific_array = data_npz['yben']  # 배열 이름에 따라 변경
-print("Specific Array:")
-print(specific_array)
+        # Load and Split the dataset
+        (xmal, ymal), (xben, yben) = self.load_data()
+        xtrain_mal, xtest_mal, ytrain_mal, ytest_mal = train_test_split(xmal, ymal, test_size=0.20)
+        xtrain_ben, xtest_ben, ytrain_ben, ytest_ben = train_test_split(xben, yben, test_size=0.20)
+        if self.same_train_data:
+            bl_xtrain_mal, bl_ytrain_mal, bl_xtrain_ben, bl_ytrain_ben = xtrain_mal, ytrain_mal, xtrain_ben, ytrain_ben
+        else:
+            xtrain_mal, bl_xtrain_mal, ytrain_mal, bl_ytrain_mal = train_test_split(xtrain_mal, ytrain_mal, test_size=0.50)
+            xtrain_ben, bl_xtrain_ben, ytrain_ben, bl_ytrain_ben = train_test_split(xtrain_ben, ytrain_ben, test_size=0.50)
 
-# 어떤 데이터가 있는지 확인
-for k in data_npz.files:
-    print(f"{k}: {data_npz[k].shape}")
-'''
+        # if is_first is Ture, Train the blackbox_detctor
+        if is_first:
+            self.blackbox_detector.fit(np.concatenate([xmal, xben]),
+                                       np.concatenate([ymal, yben]))
 
-# csv 파일 읽기
-data_csv = pd.read_csv('D:/workspace/GAN/swGAN/data/mqttdataset_reduced.csv')
+        ytrain_ben_blackbox = self.blackbox_detector.predict(bl_xtrain_ben)
+        Original_Train_TPR = self.blackbox_detector.score(bl_xtrain_mal, bl_ytrain_mal)
+        Original_Test_TPR = self.blackbox_detector.score(xtest_mal, ytest_mal)
+        Train_TPR, Test_TPR = [Original_Train_TPR], [Original_Test_TPR]
+        best_TPR = 1.0
+        for epoch in range(epochs):
 
-# target 열에 대해 레이블 매핑 (ben : 0, mal : 1)
-data_csv['label'] = data_csv['target'].map({'legitimate': 0, 'dos': 1, 'slowite': 1, 'bruteforce': 1, 'malformed': 1, 'flood': 1})
+            for step in range(xtrain_mal.shape[0] // batch_size):
+                # ---------------------
+                #  Train substitute_detector
+                # ---------------------
 
-# 매핑 후 데이터를 CSV 파일로 저장
-# data_csv.to_csv('D:\workspace\GAN\swGAN\data\origin_data_csv_mapping.csv', index=False)
+                # Select a random batch of malware examples
+                idx = np.random.randint(0, xtrain_mal.shape[0], batch_size)
+                xmal_batch = xtrain_mal[idx]
+                noise = np.random.uniform(0, 1, (batch_size, self.z_dims))
+                idx = np.random.randint(0, xmal_batch.shape[0], batch_size)
+                xben_batch = xtrain_ben[idx]
+                yben_batch = ytrain_ben_blackbox[idx]
 
-# 정상과 악성 데이터를 분리
-normal_data = data_csv[data_csv['label'] == 0]
-malicious_data = data_csv[data_csv['label'] == 1]
+                # Generate a batch of new malware examples
+                gen_examples = self.generator.predict([xmal_batch, noise])
+                ymal_batch = self.blackbox_detector.predict(np.ones(gen_examples.shape)*(gen_examples > 0.5))
 
-# csv to npz
-'''
-# 각 열을 NumPy 배열로 변환
-arrays_dict = {column: data_csv[column].values for column in data_csv.columns}
+                # Train the substitute_detector
+                d_loss_real = self.substitute_detector.train_on_batch(gen_examples, ymal_batch)
+                d_loss_fake = self.substitute_detector.train_on_batch(xben_batch, yben_batch)
+                d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
-# 딕셔너리 확인
-print(arrays_dict)
-'''
+                # ---------------------
+                #  Train Generator
+                # ---------------------
 
-# 정상 데이터를 NumPy 배열로 변환
-x_normal = normal_data.drop(['target', 'label'], axis=1).values
-y_normal = normal_data['label'].values
+                idx = np.random.randint(0, xtrain_mal.shape[0], batch_size)
+                xmal_batch = xtrain_mal[idx]
+                noise = np.random.uniform(0, 1, (batch_size, self.z_dims))
 
-# 악성 데이터를 NumPy 배열로 변환
-x_mal = malicious_data.drop(['target', 'label'], axis=1).values
-y_mal = malicious_data['label'].values
+                # Train the generator
+                g_loss = self.combined.train_on_batch([xmal_batch, noise], np.zeros((batch_size, 1)))
 
-'''
-# 데이터 확인
-print(x_mal)
+            # Compute Train TPR
+            noise = np.random.uniform(0, 1, (xtrain_mal.shape[0], self.z_dims))
+            gen_examples = self.generator.predict([xtrain_mal, noise])
+            TPR = self.blackbox_detector.score(np.ones(gen_examples.shape) * (gen_examples > 0.5), ytrain_mal)
+            Train_TPR.append(TPR)
 
-# 결과 확인
-print("Normal Data:")
-print("x_normal shape:", x_normal.shape)
-print("y_normal shape:", y_normal.shape)
+            # Compute Test TPR
+            noise = np.random.uniform(0, 1, (xtest_mal.shape[0], self.z_dims))
+            gen_examples = self.generator.predict([xtest_mal, noise])
+            TPR = self.blackbox_detector.score(np.ones(gen_examples.shape) * (gen_examples > 0.5), ytest_mal)
+            Test_TPR.append(TPR)
 
-print("\nMalicious Data:")
-print("x_mal shape:", x_mal.shape)
-print("y_mal shape:", y_mal.shape)
-'''
+            # Save best model
+            if TPR < best_TPR:
+                self.combined.save_weights('saves/malgan.h5')
+                best_TPR = TPR
 
-'''
-# 각 키에 대한 데이터 크기 출력
-for key, array in arrays_dict.items():
-    print(f"{key}의 데이터 크기: {len(array)}")
+            # Plot the progress
+            if is_first:
+                print("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
 
-# key 목록 확인
-print("Keys:", arrays_dict.keys())
+        flag = ['DiffTrainData', 'SameTrainData']
+        print('\n\n---{0} {1}'.format(self.blackbox, flag[self.same_train_data]))
+        print('\nOriginal_Train_TPR: {0}, Adver_Train_TPR: {1}'.format(Original_Train_TPR, Train_TPR[-1]))
+        print('\nOriginal_Test_TPR: {0}, Adver_Test_TPR: {1}'.format(Original_Test_TPR, Test_TPR[-1]))
 
-# key 갯수 확인
-key_count = len(arrays_dict.keys())
-print("Number of keys:", key_count)
-'''
-
-'''
-# 각 파일을 .npy로 저장
-
-# 정상 데이터 바이너리로 저장
-np.save('x_normal.npy', x_normal)
-np.save('y_normal.npy', y_normal)
-
-# 악성 데이터 바이너리로 저장
-np.save('x_mal.npy', x_mal)
-np.save('y_mal.npy', y_mal)
-
-
-# 데이터를 바이너리로 변환하여 .npz로 저장
-np.savez('D:\workspace\GAN\swGAN\data\mqtt_data.npz', x_normal=x_normal, y_normal=y_normal, x_mal=x_mal, y_mal=y_mal)
-'''
-
-mqtt_data_npz = np.load('D:\workspace\GAN\swGAN\data\mqtt_data.npz', allow_pickle=True)
-
-# data 확인
-for k in mqtt_data_npz.files:
-    print(f"{k}: {mqtt_data_npz[k].shape}")
-
-specific_array = mqtt_data_npz['x_mal'] 
-print("Specific Array:")
-print(specific_array)
-
-# npz 파일 닫기 (필수적으로 닫아야 함!)
-data_npz.close()
-mqtt_data_npz.close()
+        # Plot TPR
+        plt.figure()
+        plt.plot(range(len(Train_TPR)), Train_TPR, c='r', label='Training Set', linewidth=2)
+        plt.plot(range(len(Test_TPR)), Test_TPR, c='g', linestyle='--', label='Validation Set', linewidth=2)
+        plt.xlabel('Epoch')
+        plt.ylabel('TPR')
+        plt.legend()
+        plt.savefig('saves/Epoch_TPR({0}, {1}).png'.format(self.blackbox, flag[self.same_train_data]))
+        plt.show()
+    
+if __name__ == '__main__':
+    start = mqttGAN
+#    malgan = MalGAN(blackbox='MLP')
+#    malgan.train(epochs=500, batch_size=64)
+#    malgan.retrain_blackbox_detector()
+#    malgan.train(epochs=100, batch_size=64, is_first=False)
+    print('sw--success main!')
