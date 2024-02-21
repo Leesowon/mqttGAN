@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import csv
 import hashlib
+import sys
 
 # csv 파일 읽기
 data_csv = pd.read_csv('D:/workspace/GAN/swGAN/data/mqttdataset_reduced.csv')
@@ -46,6 +47,7 @@ for k in mqtt_data_npz.files:
 # for array_name, array_data in mqtt_data_npz.items():
 #    print(f"{array_name}: {array_data.dtype}")
     
+    '''
 # .npz 파일에 저장된 각 배열의 데이터 형식 확인
 for array_name, array_data in mqtt_data_npz.items():
     print(f"{array_name}: {array_data.dtype}")
@@ -53,7 +55,7 @@ for array_name, array_data in mqtt_data_npz.items():
         # x_normal, x_mal의 각 열에 대한 데이터 형식 확인
         for i in range(array_data.shape[1]):
             print(f"{array_name} - Column {i}: {array_data[:, i].dtype}")
-
+'''
 
 '''
 # String, 실수.. data를 숫자로 변환
@@ -76,12 +78,13 @@ def process_mqtt_data(mqtt_data_npz):
 '''
 
 def hash_str_to_int(input_str):
-    return int(hashlib.sha256(input_str.encode()).hexdigest(), 16)
+    # 해시 함수의 반환 값을 np.iinfo(np.int64).max로 나눈 나머지를 사용
+    return int(hashlib.sha256(input_str.encode()).hexdigest(), 16) % np.iinfo(np.int64).max
 
 def process_mqtt_data(mqtt_data_npz):
     processed_data = []
 
-    max_len = max(len(row) for row in mqtt_data_npz)  # 가장 긴 행의 길이 찾기
+    max_len = max(len(row) for row in mqtt_data_npz)  # 가장 긴 행의 길이를 찾습니다.
 
     for row in mqtt_data_npz:
         processed_row = []
@@ -97,20 +100,40 @@ def process_mqtt_data(mqtt_data_npz):
             except (ValueError, TypeError):  # 다른 형식의 데이터인 경우
                 processed_row.append(0)  # 해당 데이터를 0으로 처리
 
-        # 행의 길이가 max_len보다 짧으면, 0으로 padding
+        # 행의 길이가 max_len보다 짧으면, 0으로 채웁니다.
         if len(processed_row) < max_len:
             processed_row += [0] * (max_len - len(processed_row))
 
         processed_data.append(processed_row)
 
-    return np.array(processed_data, dtype=int)
+    return np.array(processed_data, dtype=np.int64)
 
 
-# 데이터 처리
-processed_data = process_mqtt_data(mqtt_data_npz)
+# 데이터 처리 (y는 레이블이라 할 필요 x)
+x_normal_processed = process_mqtt_data(mqtt_data_npz['x_normal'])
+x_mal_processed = process_mqtt_data(mqtt_data_npz['x_mal'])
 
-print("Processed Data:")
-print(processed_data)
+# 변환된 numpy들을 .npz 파일로 저장
+np.savez('D:/workspace/GAN/swGAN/data/processed_mqtt_data.npz', 
+         x_normal_processed=x_normal_processed, 
+         y_normal=mqtt_data_npz['y_normal'],  # 변환하지 않고 그대로 저장
+         x_mal_processed=x_mal_processed, 
+         y_mal=mqtt_data_npz['y_mal'])  # 변환하지 않고 그대로 저장
+
+
+
+print("x_normal_processed:")
+print(x_normal_processed)
+
+print("x_mal_processed:")
+print(x_mal_processed)
+
+
+
+# 저장된 .npz 데이터의 각각의 배열 크기 확인
+saved_npz = np.load('D:/workspace/GAN/swGAN/data/processed_mqtt_data.npz', allow_pickle=True)
+for k in saved_npz.files:
+    print(f"{k}: {saved_npz[k].shape}")
 
 
 
