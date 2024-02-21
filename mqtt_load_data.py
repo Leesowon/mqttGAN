@@ -28,6 +28,7 @@ x_mal = malicious_data.drop(['target', 'label'], axis=1).values
 y_mal = malicious_data['label'].values
 
 # 데이터 확인
+print('xmal')
 print(x_mal)
 
 
@@ -36,8 +37,7 @@ np.savez('D:\workspace\GAN\swGAN\data\mqtt_data.npz', x_normal=x_normal, y_norma
 
 mqtt_data_npz = np.load('D:\workspace\GAN\swGAN\data\mqtt_data.npz', allow_pickle=True)
 
-
-# data 확인
+# data 형식 확인
 for k in mqtt_data_npz.files:
     print(f"{k}: {mqtt_data_npz[k].shape}")
 
