@@ -30,6 +30,9 @@ x_mal = malicious_data.drop(['target', 'label'], axis=1).values
 y_mal = malicious_data['label'].values
 
 # 데이터 확인
+print("x_normal:")
+print(x_normal)
+
 print('x_mal')
 print(x_mal)
 
@@ -84,7 +87,7 @@ def hash_str_to_int(input_str):
 def process_mqtt_data(mqtt_data_npz):
     processed_data = []
 
-    max_len = max(len(row) for row in mqtt_data_npz)  # 가장 긴 행의 길이를 찾습니다.
+    max_len = max(len(row) for row in mqtt_data_npz)  # 가장 긴 행의 길이 찾기
 
     for row in mqtt_data_npz:
         processed_row = []
@@ -100,7 +103,7 @@ def process_mqtt_data(mqtt_data_npz):
             except (ValueError, TypeError):  # 다른 형식의 데이터인 경우
                 processed_row.append(0)  # 해당 데이터를 0으로 처리
 
-        # 행의 길이가 max_len보다 짧으면, 0으로 채웁니다.
+        # 행의 길이가 max_len보다 짧으면, 0으로 채우기(padding)
         if len(processed_row) < max_len:
             processed_row += [0] * (max_len - len(processed_row))
 
@@ -121,6 +124,7 @@ np.savez('D:/workspace/GAN/swGAN/data/processed_mqtt_data.npz',
          y_mal=mqtt_data_npz['y_mal'])  # 변환하지 않고 그대로 저장
 
 
+print("----------data_processed----------")
 
 print("x_normal_processed:")
 print(x_normal_processed)
@@ -129,13 +133,10 @@ print("x_mal_processed:")
 print(x_mal_processed)
 
 
-
 # 저장된 .npz 데이터의 각각의 배열 크기 확인
 saved_npz = np.load('D:/workspace/GAN/swGAN/data/processed_mqtt_data.npz', allow_pickle=True)
 for k in saved_npz.files:
     print(f"{k}: {saved_npz[k].shape}")
-
-
 
 # npz 파일 닫기
 # data_npz.close()
