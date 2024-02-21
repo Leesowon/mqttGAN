@@ -10,12 +10,11 @@ import numpy as np
 import tensorflow as tf
 
 class mqttGAN():
-    def __init__(self, filename='D:/workspace/GAN/swGAN/data/mqtt_data.npz'):
+    def __init__(self, filename='D:/workspace/GAN/swGAN/data/process_mqtt_data.npz'):
         pass
     
-   
-
-    def build_generator(self):
+    '''
+    def GENERATOR(self):
 
         example = Input(shape=(self.apifeature_dims,))
         noise = Input(shape=(self.z_dims,))
@@ -28,11 +27,17 @@ class mqttGAN():
         generator.summary()
         return generator
     
+    def build_detector(self):
+        pass     
+    '''
+
     def load_data(self):
         data = np.load(self.filename)
-        xmal, ymal, xben, yben = data['x_mal'], data['y_mal'], data['x_normal'], data['y_normal']
+        xmal, ymal, xben, yben = data['x_mal_processed'], data['y_mal'], data['x_normal_processed'], data['y_normal']
         print('sw--success def data_load!')
         return (xmal, ymal), (xben, yben)
+                
+    
     
     def train(self, epochs, batch_size=32, is_first=1):
 
