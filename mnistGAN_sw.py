@@ -35,7 +35,39 @@ print('xmal shape = ', xmal.shape)
     ben_data.to_csv('D:\workspace\GAN\swGAN\data\ben_data_labeling.csv', index=False)
     mal_data.to_csv('D:\workspace\GAN\swGAN\data\mal_data_labeling.csv', index=False)
 '''
+# GAN 모델링
+from keras import models, layers, optimizers
 
+def mse_4d(y_true, y_pred):
+    return K.mean(K.square(y_pred - y_true), axis=(1,2,3))
+
+def mse_4d_tf(y_true, y_pred):
+    return tf.reduce_mean(tf.square(y_pred - y_true), axis=(1,2,3))
+
+
+class GAN(models.Sequential):
+    def __init__(self, input_dim=64):
+        """
+        self, self.generator, self.discriminator are all models
+        """
+        super().__init__()
+        self.input_dim = input_dim
+
+        self.generator = self.GENERATOR()
+        self.discriminator = self.DISCRIMINATOR()
+        self.add(self.generator)
+        self.discriminator.trainable = False
+        self.add(self.discriminator)
+
+        self.blackbox_detector = self.build_blackbox_detector()
+
+        self.compile_all()
+        
+        
+        
+        
+        
+    
 def train(args):
     
     BATCH_SIZE = args.batch_size
