@@ -1,6 +1,7 @@
 from keras.datasets import mnist
 import numpy as np
-#from PIL import Image
+import pandas as pd
+# from PIL import Image
 import math
 import os
 
@@ -233,6 +234,40 @@ def process_data_set2(fpath):
 
     return seq_arr
 
+def padding_data(f, data_type):
+    data = pd.read_csv(f)
+    # print(data.head())
+
+    print("##### processing #####")
+
+    data = data.drop('target', axis=1)
+    # print(data.head())
+
+    # 데이터 프레임 열 개수 확인
+    num = data.shape[1]  # 33
+    # print('origin_data column : ', num)
+
+    # 80개 열을 가진 데이터 프레임 생성
+    new_data = pd.DataFrame()
+
+    # new_line 생성
+    for i in range(num):
+        new_data[data.columns[i]] = data[data.columns[i]]
+
+    for i in range(num, 80):
+        new_data['new_col_' + str(i - num)] = 0  # 새로운 열에 0 채우기
+
+    # print(new_data)
+
+    new_num = data.shape[1]  # 80
+    print('data column : ', new_data)
+    process_data = 'D:/workspace/GAN/swGAN/data/data_' + data_type + '_make_80_colums.csv'
+    # print(file_name)
+    
+    # print('##### padding data size : ', new_data.shape, '#####')
+    # 저장
+    new_data.to_csv(process_data, index=False)
+
 
 def train(args):
     BATCH_SIZE = args.batch_size
@@ -244,27 +279,22 @@ def train(args):
     os.makedirs(output_fold, exist_ok=True)
     print('Output_fold is', output_fold)
 
-    # X_train = load_data(n_train)
-    # (xmal, ymal), (xben, yben) = load_data2('data.npz')
-    # X_train = xmal
-
-    """xben = process_data_set2("./trigram_1500_new_02/Normal/seq/1.csv")
-    yben = np.zeros(1500)
-    xmal = process_data_set2("./trigram_1500_new_02/Attack/seq/1.csv")
-    ymal = np.ones(1500)
-    """
-    # xben = process_data_set2("./unigram_200903/Normal/normal_unigram_1000.txt")
-    # yben = np.zeros(1000)
-    # xmal = process_data_set2("./unigram_200903/Attack/malicious_unigram_1000.txt")
-    # ymal = np.ones(1000)
-
-    # 시퀀스 한줄의 길이는 80 임
+    # 시퀀스 한줄의 길이는 80
     num_of_normal = 1000
     num_of_mal = 1000
-    xben = process_data_set2("D:/workspace/GAN/train_mqtt_normal.csv")
+
+    f_ben = "D:\\workspace\\GAN\\swGAN\\data\\mqttdataset_legitimate_1000.csv"
+    f_mal = "D:\\workspace\\GAN\\swGAN\\data\\mqttdataset_malicious_1000.csv"
+
+    xben = padding_data(f_ben, 'ben')
     yben = np.zeros(num_of_normal)
-    xmal = process_data_set2("D:/workspace/GAN/train_mqtt_mal.csv")
+    xmal = padding_data(f_mal, 'mal')
     ymal = np.ones(num_of_mal)
+
+    # xben = padding_data("D:\\workspace\\GAN\\swGAN\\data\\ben_data_labeling.csv")
+    # yben = np.zeros(num_of_normal)
+    # xmal = padding_data("D:\\workspace\\GAN\\swGAN\\data\\mal_data_labeling.csv")
+    # ymal = np.ones(num_of_mal)
 
     print("xben.shape=", xben.shape)
     print("xmal.shape=", xmal.shape)
