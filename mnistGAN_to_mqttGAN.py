@@ -234,11 +234,13 @@ def process_data_set2(fpath):
 
     return seq_arr
 
+
+
 def padding_data(f, data_type):
     data = pd.read_csv(f)
     # print(data.head())
 
-    print("##### processing #####")
+    # print("##### processing #####")
 
     data = data.drop('target', axis=1)
     # print(data.head())
@@ -257,16 +259,17 @@ def padding_data(f, data_type):
     for i in range(num, 80):
         new_data['new_col_' + str(i - num)] = 0  # 새로운 열에 0 채우기
 
-    # print(new_data)
 
     new_num = data.shape[1]  # 80
-    print('data column : ', new_data)
+    # print(new_data)
     process_data = 'D:/workspace/GAN/swGAN/data/data_' + data_type + '_make_80_colums.csv'
     # print(file_name)
     
     # print('##### padding data size : ', new_data.shape, '#####')
     # 저장
     new_data.to_csv(process_data, index=False)
+
+    return new_data
 
 
 def train(args):
@@ -291,44 +294,29 @@ def train(args):
     xmal = padding_data(f_mal, 'mal')
     ymal = np.ones(num_of_mal)
 
-    # xben = padding_data("D:\\workspace\\GAN\\swGAN\\data\\ben_data_labeling.csv")
-    # yben = np.zeros(num_of_normal)
-    # xmal = padding_data("D:\\workspace\\GAN\\swGAN\\data\\mal_data_labeling.csv")
-    # ymal = np.ones(num_of_mal)
 
-    print("xben.shape=", xben.shape)
-    print("xmal.shape=", xmal.shape)
-    print("xmal[0]=", xmal[0])
+    # print("xben.shape=", xben.shape)
+    # print("xmal.shape=", xmal.shape)
+
+    # print("xmal[0]=", xmal[0])
+    # print("xmal[0]=", xmal.iloc[0])
 
     # train_size_a = 0.2
     # train_size_a = 0.4
     # train_size_a = 0.6
     train_size_a = 0.8
 
-    # xtrain_mal, xtest_mal, ytrain_mal, ytest_mal = train_test_split(xmal, ymal, test_size=0.20, shuffle=False)
-    # xtrain_ben, xtest_ben, ytrain_ben, ytest_ben = train_test_split(xben, yben, test_size=0.20, shuffle=False)
-    xtrain_mal, xtest_mal, ytrain_mal, ytest_mal = train_test_split(xmal, ymal, train_size=train_size_a, test_size=0.20,
-                                                                    shuffle=False)
-    xtrain_ben, xtest_ben, ytrain_ben, ytest_ben = train_test_split(xben, yben, train_size=train_size_a, test_size=0.20,
-                                                                    shuffle=False)
 
+    xtrain_mal, xtest_mal, ytrain_mal, ytest_mal = train_test_split(xmal, ymal, train_size=train_size_a,
+                                                                    test_size=0.20, shuffle=False)
+    xtrain_ben, xtest_ben, ytrain_ben, ytest_ben = train_test_split(xben, yben, train_size=train_size_a,
+                                                                    test_size=0.20, shuffle=False)
+    '''
     print("xtrain_mal.shape=", xtrain_mal.shape)
-    # print("X_train.shape[0]=", X_train.shape[0])
-    # print(X_train.shape[1:])
-
-    # print("xtest_mal=", xtest_mal[0])
-
-    # X_train = (X_train.astype(np.float32) - 127.5) / 127.5
-    # X_train = X_train.reshape((X_train.shape[0], 1) + X_train.shape[1:])
-    """xtrain_mal = (xtrain_mal.astype(np.float32) - 125000.0) / 125000.0
-    xtrain_mal = xtrain_mal.reshape((xtrain_mal.shape[0], 1) + xtrain_mal.shape[1:])
-    xtrain_ben = (xtrain_ben.astype(np.float32) - 125000.0) / 125000.0
-    xtrain_ben = xtrain_ben.reshape((xtrain_ben.shape[0], 1) + xtrain_mal.shape[1:])
-
-    xtest_mal = (xtest_mal.astype(np.float32) - 125000.0) / 125000.0
-    xtest_mal = xtest_mal.reshape((xtest_mal.shape[0], 1) + xtest_mal.shape[1:])
-    xtest_ben = (xtest_ben.astype(np.float32) - 125000.0) / 125000.0
-    xtest_ben = xtest_ben.reshape((xtest_ben.shape[0], 1) + xtest_ben.shape[1:])"""
+    print("xtest_mal.shape=", xtest_mal.shape)
+    print("ytrain_mal.shape=", ytrain_mal.shape)
+    print("ytest_mal.shape=", ytest_mal.shape)
+    '''
 
     xtrain_mal = (xtrain_mal.astype(np.float32) - 35000.0) / 35000.0
     xtrain_mal = xtrain_mal.reshape((xtrain_mal.shape[0], 1) + xtrain_mal.shape[1:])
@@ -340,30 +328,12 @@ def train(args):
     xtest_ben = (xtest_ben.astype(np.float32) - 35000.0) / 35000.0
     xtest_ben = xtest_ben.reshape((xtest_ben.shape[0], 1) + xtest_ben.shape[1:])
 
-    # xtest_mal_int = (xtest_mal * 125000.0 + 125000.0).astype(np.int)
-    # print("xtest_mal_int[0]=", xtest_mal_int[0])
-
-    # X_train = xmal
-    # X_train = X_train.reshape(X_train.shape[0], 1, 8, 16)
-    # xtrain_mal2 = xtrain_mal.reshape(xtrain_mal.shape[0], 1, 8, 16)
-    # xtest_mal2 = xtest_mal.reshape(xtest_mal.shape[0], 1, 8, 16)
-    # xtrain_ben2 = xtrain_ben.reshape(xtrain_ben.shape[0], 1, 8, 16)
-    # xtest_ben2 = xtest_ben.reshape(xtest_ben.shape[0], 1, 8, 16)
-
-    # xtrain_mal2 = xtrain_mal.reshape(xtrain_mal.shape[0], 1, 40, 20)
-    # xtest_mal2 = xtest_mal.reshape(xtest_mal.shape[0], 1, 40, 20)
-    # xtrain_ben2 = xtrain_ben.reshape(xtrain_ben.shape[0], 1, 40, 20)
-    # xtest_ben2 = xtest_ben.reshape(xtest_ben.shape[0], 1, 40, 20)
 
     xtrain_mal2 = xtrain_mal.reshape(xtrain_mal.shape[0], 1, 10, 8)
     xtest_mal2 = xtest_mal.reshape(xtest_mal.shape[0], 1, 10, 8)
     xtrain_ben2 = xtrain_ben.reshape(xtrain_ben.shape[0], 1, 10, 8)
     xtest_ben2 = xtest_ben.reshape(xtest_ben.shape[0], 1, 10, 8)
 
-    # xtrain_mal3 = xtrain_mal2.reshape(xtrain_mal2.shape[0], 800)
-    # xtrain_ben3 = xtrain_ben2.reshape(xtrain_ben2.shape[0], 800)
-    # xtest_mal3 = xtest_mal2.reshape(xtest_mal2.shape[0], 800)
-    # xtest_ben3 = xtest_ben2.reshape(xtest_ben2.shape[0], 800)
 
     # print("X_train.shape=", X_train.shape)
     print("xtrain_mal[0]=", xtrain_mal[0])
