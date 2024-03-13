@@ -75,15 +75,16 @@ print('mqtt.hdrflags type : ', xben['mqtt.hdrflags'].dtype)
 print('mqtt.len type : ', xben['mqtt.len'].dtype)
 print('mqtt.msg type : ', xben['mqtt.msg'].dtype)
 
-
+'''
 print('##### dataframe to numpy #####')
 xben = xben.values
 print(xben)
 xmal = xmal.values
 print(xmal)
+'''
 
-print('xben nummpy? : ', type(xben))
-print('xmal nummpy? : ', type(xmal))
+print('xben is nummpy? : ', type(xben))
+print('xmal is nummpy? : ', type(xmal))
 
 train_size_a = 0.8
 
@@ -96,3 +97,28 @@ print("xtrain_mal.shape=", xtrain_mal.shape)
 print("xtest_mal.shape=", xtest_mal.shape)
 print("ytrain_mal.shape=", ytrain_mal.shape)
 print("ytest_mal.shape=", ytest_mal.shape)
+
+print("X_train_mal type : ", type(xtrain_mal))
+
+
+# numpy 데이터 전처리
+xtrain_mal = xtrain_mal.to_numpy().reshape((xtrain_mal.shape[0], 1) + xtrain_mal.shape[1:])
+xtrain_ben = xtrain_ben.to_numpy().reshape((xtrain_ben.shape[0], 1) + xtrain_ben.shape[1:])
+xtest_mal = xtest_mal.to_numpy().reshape((xtest_mal.shape[0], 1) + xtest_mal.shape[1:])
+xtest_ben = xtest_ben.to_numpy().reshape((xtest_ben.shape[0], 1) + xtest_ben.shape[1:])
+print('done1')
+
+xtrain_mal = (xtrain_mal.astype(np.float32) - 35000.0) / 35000.0
+xtrain_mal = xtrain_mal.reshape((xtrain_mal.shape[0], 1) + xtrain_mal.shape[1:])
+xtrain_ben = (xtrain_ben.astype(np.float32) - 35000.0) / 35000.0
+xtrain_ben = xtrain_ben.reshape((xtrain_ben.shape[0], 1) + xtrain_mal.shape[1:])
+print('done2')
+
+xtest_mal = (xtest_mal.astype(np.float32) - 35000.0) / 35000.0
+xtest_mal = xtest_mal.reshape((xtest_mal.shape[0], 1) + xtest_mal.shape[1:])
+xtest_ben = (xtest_ben.astype(np.float32) - 35000.0) / 35000.0
+xtest_ben = xtest_ben.reshape((xtest_ben.shape[0], 1) + xtest_ben.shape[1:])
+print('done3')
+
+print("xtrain_mal.shape=", xtrain_mal.shape)
+print("xtrain_ben.shape=", xtrain_ben.shape)
