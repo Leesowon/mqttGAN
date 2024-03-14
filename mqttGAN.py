@@ -25,8 +25,8 @@ print(line)
 ben = pd.read_csv(f_ben)
 mal = pd.read_csv(f_mal)
 
-print(ben.shape)
-print(mal.shape)
+# print(ben.shape) # (1000,34)
+# print(mal.shape) # (1000,34)
 
 ben = ben.drop(['tcp.time_delta', 'mqtt.conack.flags', 'mqtt.conack.flags.reserved', 'mqtt.conack.flags.sp', 'mqtt.conack.val', 'mqtt.conflag.cleansess',
           'mqtt.conflag.passwd', 'mqtt.conflag.qos', 'mqtt.conflag.reserved', 'mqtt.conflag.retain', 'mqtt.conflag.uname', 'mqtt.conflag.willflag',
@@ -38,12 +38,12 @@ mal = mal.drop(['tcp.time_delta', 'mqtt.conack.flags', 'mqtt.conack.flags.reserv
           'mqtt.conflags', 'mqtt.dupflag', 'mqtt.kalive', 'mqtt.msgid', 'mqtt.msgtype', 'mqtt.proto_len', 'mqtt.protoname', 'mqtt.qos', 'mqtt.retain',
           'mqtt.sub.qos', 'mqtt.suback.qos', 'mqtt.ver', 'mqtt.willmsg', 'mqtt.willmsg_len', 'mqtt.willtopic', 'mqtt.willtopic_len', 'target'], axis=1)
 
-print('drop:',ben.shape)
-print('drop:',mal.shape)
+# print('drop missing data(ben):',ben.shape) # (1000,5)
+# print('drop missing data(mal):',mal.shape) # (1000,5)
 
-print('##### 사용할 feature #####')
-print('ben_columns : ', ben.columns)
-print('mal_columns : ', mal.columns)
+# print('##### 사용할 feature #####')
+# print('ben_columns : ', ben.columns) # Index(['tcp.flags', 'tcp.len', 'mqtt.hdrflags', 'mqtt.len', 'mqtt.msg'], dtype='object')
+# print('mal_columns : ', mal.columns)
 
 xben = ben
 xmal = mal
@@ -57,23 +57,44 @@ yben = np.zeros(num_of_normal)
 # xmal = padding_data(f_mal, 'mal')
 ymal = np.ones(num_of_mal)
 
-print("xben.shape=", xben.shape)
-print("yben.shape=", yben.shape)
-print("xmal.shape=", xmal.shape)
-print("ymal.shape=", ymal.shape)
+'''
+print("xben.shape=", xben.shape) # (1000,5)
+print("yben.shape=", yben.shape) # (1000,)
+print("xmal.shape=", xmal.shape) # (1000,5)
+print("ymal.shape=", ymal.shape) # (1000,)
 
 print('\n##### xben, yben, xmal, ymal #####')
-print("xben_data type : ", type(xben))
-print("xben_data type : ", type(yben))
-print("xben_data type : ", type(xmal))
-print("xben_data type : ", type(ymal))
+print("xben_data type : ", type(xben)) # <class 'pandas.core.frame.DataFrame'>
+print("xben_data type : ", type(yben)) # <class 'numpy.ndarray'>
+print("xben_data type : ", type(xmal)) # <class 'pandas.core.frame.DataFrame'>
+print("xben_data type : ", type(ymal)) # <class 'numpy.ndarray'>
 
 print('\n##### xben feature 별 데이터 타입 #####')
-print('tcp.flags type : ', xben['tcp.flags'].dtype)
-print('tcp.len type : ', xben['tcp.len'].dtype)
-print('mqtt.hdrflags type : ', xben['mqtt.hdrflags'].dtype)
-print('mqtt.len type : ', xben['mqtt.len'].dtype)
-print('mqtt.msg type : ', xben['mqtt.msg'].dtype)
+print('tcp.flags type : ', xben['tcp.flags'].dtype) # oject
+print('tcp.len type : ', xben['tcp.len'].dtype) # float64
+print('mqtt.hdrflags type : ', xben['mqtt.hdrflags'].dtype) # object
+print('mqtt.len type : ', xben['mqtt.len'].dtype) # float64
+print('mqtt.msg type : ', xben['mqtt.msg'].dtype) # int64
+'''
+
+# print('##### object to float #####')
+# xben['tcp.flages'] = xben['tcp.flags'].astype(float)
+# 문자열을 실수로 변환할 수 없음
+# >> object 데이터 다 버리기
+
+print('##### drop object features #####')
+xben = xben.drop(['tcp.flags', 'mqtt.hdrflags'], axis=1)
+xmal = xmal.drop(['tcp.flags', 'mqtt.hdrflags'], axis=1)
+
+print('xben_columns : ', ben.columns)
+print('xmal_columns : ', mal.columns)
+
+print('\n##### drop-object-xben feature 별 데이터 타입 #####')
+print('tcp.flags type : ', xben['tcp.flags'].dtype) # oject
+print('tcp.len type : ', xben['tcp.len'].dtype) # float64
+print('mqtt.hdrflags type : ', xben['mqtt.hdrflags'].dtype) # object
+print('mqtt.len type : ', xben['mqtt.len'].dtype) # float64
+print('mqtt.msg type : ', xben['mqtt.msg'].dtype) # int64
 
 '''
 print('##### dataframe to numpy #####')
@@ -83,8 +104,8 @@ xmal = xmal.values
 print(xmal)
 '''
 
-print('xben is nummpy? : ', type(xben))
-print('xmal is nummpy? : ', type(xmal))
+print('xben is nummpy or dataframe? : ', type(xben)) # <class 'pandas.core.frame.DataFrame'>
+print('xmal is nummpy or dataframe? : ', type(xmal)) # <class 'pandas.core.frame.DataFrame'>
 
 train_size_a = 0.8
 
@@ -93,12 +114,12 @@ xtrain_mal, xtest_mal, ytrain_mal, ytest_mal = train_test_split(xmal, ymal, trai
 xtrain_ben, xtest_ben, ytrain_ben, ytest_ben = train_test_split(xben, yben, train_size=train_size_a,
                                                                     test_size=0.20, shuffle=False)
 
-print("xtrain_mal.shape=", xtrain_mal.shape)
-print("xtest_mal.shape=", xtest_mal.shape)
-print("ytrain_mal.shape=", ytrain_mal.shape)
-print("ytest_mal.shape=", ytest_mal.shape)
+print("xtrain_mal.shape=", xtrain_mal.shape) # (800, 3)
+print("xtest_mal.shape=", xtest_mal.shape) # (200,3)
+print("ytrain_mal.shape=", ytrain_mal.shape) # (800,)
+print("ytest_mal.shape=", ytest_mal.shape) # (200,)
 
-print("X_train_mal type : ", type(xtrain_mal))
+print("X_train_mal type : ", type(xtrain_mal)) #  <class 'pandas.core.frame.DataFrame'>
 
 
 # numpy 데이터 전처리
@@ -120,5 +141,5 @@ xtest_ben = (xtest_ben.astype(np.float32) - 35000.0) / 35000.0
 xtest_ben = xtest_ben.reshape((xtest_ben.shape[0], 1) + xtest_ben.shape[1:])
 print('done3')
 
-print("xtrain_mal.shape=", xtrain_mal.shape)
-print("xtrain_ben.shape=", xtrain_ben.shape)
+print("xtrain_mal.shape=", xtrain_mal.shape) # xtrain_mal.shape= (800, 1, 1, 3)
+print("xtrain_ben.shape=", xtrain_ben.shape) # xtrain_ben.shape= (800, 1, 1, 1, 3)
