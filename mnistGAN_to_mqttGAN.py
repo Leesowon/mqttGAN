@@ -7,6 +7,7 @@ import os
 
 import keras.backend as K
 import tensorflow as tf
+# tf.config.run_functions_eagerly(True)
 
 import time
 from sklearn.neural_network import MLPClassifier
@@ -174,6 +175,8 @@ class GAN(models.Sequential):
 ################################
 # GAN 학습하기
 ################################
+
+'''
 def combine_images(generated_images):
     num = generated_images.shape[0]
     width = int(math.sqrt(num))
@@ -233,20 +236,20 @@ def process_data_set2(fpath):
     # print(seq_arr.shape)
 
     return seq_arr
+'''
 
 
+def padding_data(data, data_type):
+    # data = pd.read_csv(f)
 
-def padding_data(f, data_type):
-    data = pd.read_csv(f)
     # print(data.head())
 
     # print("##### processing #####")
-
-    data = data.drop('target', axis=1)
+    # data = data.drop('target', axis=1)
     # print(data.head())
 
     # 데이터 프레임 열 개수 확인
-    num = data.shape[1]  # 33
+    num = data.shape[1]  # 3
     # print('origin_data column : ', num)
 
     # 80개 열을 가진 데이터 프레임 생성
@@ -268,7 +271,6 @@ def padding_data(f, data_type):
     # print('##### padding data size : ', new_data.shape, '#####')
     # 저장
     new_data.to_csv(process_data, index=False)
-
     return new_data
 
 
@@ -282,61 +284,113 @@ def train(args):
     os.makedirs(output_fold, exist_ok=True)
     print('Output_fold is', output_fold)
 
+    f_ben = "D:\\workspace\\GAN\\swGAN\\data\\mqttdataset_legitimate_1000.csv"
+    f_mal = "D:\\workspace\\GAN\\swGAN\\data\\mqttdataset_malicious_1000.csv"
+
+    # dataframe 형태로 불러오기
+    ben = pd.read_csv(f_ben)
+    mal = pd.read_csv(f_mal)
+    # print(ben.shape) # (1000,34)
+    # print(mal.shape) # (1000,34)
+
+    ben = ben.drop(
+        ['tcp.time_delta', 'mqtt.conack.flags', 'mqtt.conack.flags.reserved', 'mqtt.conack.flags.sp', 'mqtt.conack.val',
+         'mqtt.conflag.cleansess',
+         'mqtt.conflag.passwd', 'mqtt.conflag.qos', 'mqtt.conflag.reserved', 'mqtt.conflag.retain',
+         'mqtt.conflag.uname', 'mqtt.conflag.willflag',
+         'mqtt.conflags', 'mqtt.dupflag', 'mqtt.kalive', 'mqtt.msgid', 'mqtt.msgtype', 'mqtt.proto_len',
+         'mqtt.protoname', 'mqtt.qos', 'mqtt.retain',
+         'mqtt.sub.qos', 'mqtt.suback.qos', 'mqtt.ver', 'mqtt.willmsg', 'mqtt.willmsg_len', 'mqtt.willtopic',
+         'mqtt.willtopic_len', 'target'], axis=1)
+
+    mal = mal.drop(
+        ['tcp.time_delta', 'mqtt.conack.flags', 'mqtt.conack.flags.reserved', 'mqtt.conack.flags.sp', 'mqtt.conack.val',
+         'mqtt.conflag.cleansess',
+         'mqtt.conflag.passwd', 'mqtt.conflag.qos', 'mqtt.conflag.reserved', 'mqtt.conflag.retain',
+         'mqtt.conflag.uname', 'mqtt.conflag.willflag',
+         'mqtt.conflags', 'mqtt.dupflag', 'mqtt.kalive', 'mqtt.msgid', 'mqtt.msgtype', 'mqtt.proto_len',
+         'mqtt.protoname', 'mqtt.qos', 'mqtt.retain',
+         'mqtt.sub.qos', 'mqtt.suback.qos', 'mqtt.ver', 'mqtt.willmsg', 'mqtt.willmsg_len', 'mqtt.willtopic',
+         'mqtt.willtopic_len', 'target'], axis=1)
+
+    # print('drop missing data(ben):',ben.shape) # (1000,5)
+    # print('drop missing data(mal):',mal.shape) # (1000,5)
+
+    # print("xmal[0]=", xmal[0])
+    # print("xmal[0]=", xmal.iloc[0])
+
+    xben = ben
+    xmal = mal
+
     # 시퀀스 한줄의 길이는 80
     num_of_normal = 1000
     num_of_mal = 1000
 
-    f_ben = "D:\\workspace\\GAN\\swGAN\\data\\mqttdataset_legitimate_1000.csv"
-    f_mal = "D:\\workspace\\GAN\\swGAN\\data\\mqttdataset_malicious_1000.csv"
+    print('##### drop object features #####')
+    xben = xben.drop(['tcp.flags', 'mqtt.hdrflags'], axis=1)
+    xmal = xmal.drop(['tcp.flags', 'mqtt.hdrflags'], axis=1)
 
-    xben = padding_data(f_ben, 'ben')
+    xben = padding_data(xben, 'ben')
     yben = np.zeros(num_of_normal)
-    xmal = padding_data(f_mal, 'mal')
+    xmal = padding_data(xmal, 'mal')
     ymal = np.ones(num_of_mal)
 
+    print('xben is nummpy or dataframe? : ', type(xben))  # <class 'pandas.core.frame.DataFrame'>
+    print('xmal is nummpy or dataframe? : ', type(xmal))  # <class 'pandas.core.frame.DataFrame'>
 
-    # print("xben.shape=", xben.shape)
-    # print("xmal.shape=", xmal.shape)
-
-    # print("xmal[0]=", xmal[0])
-    # print("xmal[0]=", xmal.iloc[0])
+    print("xben.shape=", xben.shape) # (1000,80)
+    print("yben.shape=", yben.shape) # (1000,)
+    print("xmal.shape=", xmal.shape) # (1000,80)
+    print("ymal.shape=", ymal.shape) # (1000,)
 
     # train_size_a = 0.2
     # train_size_a = 0.4
     # train_size_a = 0.6
     train_size_a = 0.8
 
-
     xtrain_mal, xtest_mal, ytrain_mal, ytest_mal = train_test_split(xmal, ymal, train_size=train_size_a,
                                                                     test_size=0.20, shuffle=False)
     xtrain_ben, xtest_ben, ytrain_ben, ytest_ben = train_test_split(xben, yben, train_size=train_size_a,
                                                                     test_size=0.20, shuffle=False)
-    '''
-    print("xtrain_mal.shape=", xtrain_mal.shape)
-    print("xtest_mal.shape=", xtest_mal.shape)
-    print("ytrain_mal.shape=", ytrain_mal.shape)
-    print("ytest_mal.shape=", ytest_mal.shape)
-    '''
 
-    xtrain_mal = (xtrain_mal.astype(np.float32) - 35000.0) / 35000.0
+    print("xtrain_mal.shape=", xtrain_mal.shape) # (800, 80)
+    print("xtest_mal.shape=", xtest_mal.shape) # (200,80)
+    print("ytrain_mal.shape=", ytrain_mal.shape) # (800,)
+    print("ytest_mal.shape=", ytest_mal.shape) # (200,)
+
+    print("X_train_mal type : ", type(xtrain_mal)) # <class 'pandas.core.frame.DataFrame'>
+
+    # dataframe -> numpy 변환 & reshape : numpy 배열의 형태 변경 / 데이터셋을 (800, 80)에서 (800, 1, 80)으로 변경
+    xtrain_mal = xtrain_mal.to_numpy().reshape((xtrain_mal.shape[0], 1) + xtrain_mal.shape[1:])
+    xtrain_ben = xtrain_ben.to_numpy().reshape((xtrain_ben.shape[0], 1) + xtrain_ben.shape[1:])
+    xtest_mal = xtest_mal.to_numpy().reshape((xtest_mal.shape[0], 1) + xtest_mal.shape[1:])
+    xtest_ben = xtest_ben.to_numpy().reshape((xtest_ben.shape[0], 1) + xtest_ben.shape[1:])
+    print('\ndone1(ben) : ', xtrain_ben.shape)
+    print('done1(mal) : ', xtrain_mal.shape)
+
+    # 데이터를 정규화하고 새로운 형태로 재구성
+    xtrain_mal = (xtrain_mal.astype(np.float64) - 35000.0) / 35000.0  # float32 -> 64
     xtrain_mal = xtrain_mal.reshape((xtrain_mal.shape[0], 1) + xtrain_mal.shape[1:])
-    xtrain_ben = (xtrain_ben.astype(np.float32) - 35000.0) / 35000.0
+    xtrain_ben = (xtrain_ben.astype(np.float64) - 35000.0) / 35000.0  # float32 -> 64
     xtrain_ben = xtrain_ben.reshape((xtrain_ben.shape[0], 1) + xtrain_mal.shape[1:])
+    print('\ndone2(ben) : ', xtrain_ben.shape)
+    print('done2(mal) : ', xtrain_mal.shape)
 
-    xtest_mal = (xtest_mal.astype(np.float32) - 35000.0) / 35000.0
+    xtest_mal = (xtest_mal.astype(np.float64) - 35000.0) / 35000.0  # float32 -> 64
     xtest_mal = xtest_mal.reshape((xtest_mal.shape[0], 1) + xtest_mal.shape[1:])
-    xtest_ben = (xtest_ben.astype(np.float32) - 35000.0) / 35000.0
+    xtest_ben = (xtest_ben.astype(np.float64) - 35000.0) / 35000.0  # float32 -> 64
     xtest_ben = xtest_ben.reshape((xtest_ben.shape[0], 1) + xtest_ben.shape[1:])
+    print('\ndone3(ben) : ', xtrain_ben.shape)
+    print('done3(mal) : ', xtrain_mal.shape)
 
-
+    # 각 데이터셋을 (800, 1, 10, 8) 또는 (200, 1, 10, 8)로 reshape하여 4차원으로 변환
+    # (샘플 수, 채널 수, 높이, 너비)
     xtrain_mal2 = xtrain_mal.reshape(xtrain_mal.shape[0], 1, 10, 8)
     xtest_mal2 = xtest_mal.reshape(xtest_mal.shape[0], 1, 10, 8)
     xtrain_ben2 = xtrain_ben.reshape(xtrain_ben.shape[0], 1, 10, 8)
     xtest_ben2 = xtest_ben.reshape(xtest_ben.shape[0], 1, 10, 8)
-
-
-    # print("X_train.shape=", X_train.shape)
-    print("xtrain_mal[0]=", xtrain_mal[0])
+    print('\ndone final(ben) : ', xtrain_ben2.shape)
+    print('done final(mal) : ', xtrain_mal2.shape)
 
     ################################################################################
     print("\nstart GAN()")
