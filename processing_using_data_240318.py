@@ -52,9 +52,11 @@ print('\n')
 # print('\n', df['target'].unique())
 '''
 # missing 데이터 제거
-drop_null_data = df.drop(['mqtt.conack.flags', 'mqtt.conack.flags.reserved', 'mqtt.conack.flags.sp','mqtt.conflag.qos', 'mqtt.conflag.reserved',
-                          'mqtt.conflag.retain', 'mqtt.conflag.willflag', 'mqtt.sub.qos', 'mqtt.suback.qos', 'mqtt.willmsg', 'mqtt.willmsg_len', 'mqtt.willtopic',
-                          'mqtt.willtopic_len'], axis=1)
+drop_null_data = df.drop(['mqtt.conack.flags', 'mqtt.conack.flags.reserved', 'mqtt.conack.flags.sp','mqtt.conflag.qos',
+                          'mqtt.conflag.reserved', 'mqtt.conflag.retain', 'mqtt.conflag.willflag', 'mqtt.sub.qos', 'mqtt.suback.qos',
+                          'mqtt.willmsg', 'mqtt.willmsg_len', 'mqtt.willtopic', 'mqtt.willtopic_len'], axis=1)
+'''
+'''
 # 저장
 # drop_null_data.to_csv('D:\workspace\GAN\swGAN\data\drop_null_data(24.03.16).csv', index=False)
 
@@ -110,18 +112,177 @@ yben = np.zeros(num_of_normal)
 xmal = pd.read_csv(f_xmal)
 ymal = np.zeros(num_of_mal)
 
+'''
 print("xben.shape=", xben.shape) # (1000,19)
 print("yben.shape=", yben.shape) # (1000,)
 print("xmal.shape=", xmal.shape) # (1000,19)
 print("ymal.shape=", ymal.shape) # (1000,)
 # print("xmal[0]=", xmal.iloc[0])
-
-print(type(xben)) # Dataframe
+'''
+# print(type(xben)) # Dataframe
 # print(type(xmal)) # Dataframe
 
+# ('xben_columns : ', xben.columns)
+# print('xmal_columns : ', xmal.columns)
 
-# Dataframe -> numpy
-# astype(np.float32) & -1~1 사이의 값으로 스케일링 : 이런 정규화과정은 학습과정에서 수렴을 촉진하고, 더 빠르고 안정적인 학습을 가능하게 하는데 도움
+# print(xben.shape[1]) # 열 갯수 : 19
+# == len(xben.columns)
+
+# 각 columns의 자료형만 확인
+# print(xben.dtypes)
 
 
-# 각 피쳐별 데이터 타입 확인
+# dataframe -> csv -> numpy (x)
+# xben_csv = xben.to_csv(header=False, index=False)
+# xben = np.array([row.split(',') for row in xben_csv.strip().split('\n')])
+
+# print('drop')
+# xben = xben.drop(['tcp.flags', 'mqtt.hdrflags'], axis=1)
+# xmal = xmal.drop(['tcp.flags', 'mqtt.hdrflags'], axis=1)
+# print("xben.shape=", xben.shape) # (1000,17)
+
+# print('xben data type : ', xben.dtypes)
+# print('xmal data type : ', xmal.dtypes)
+
+
+# hex to int
+print(xben['tcp.flags'].dtype)
+'''
+print(xben['tcp.flags'][0])
+integer_value = int(xben['tcp.flags'][0], 16)
+print('변환 : ', integer_value)
+'''
+
+'''
+# 0x로 시작하는 값 int로 반환 : 0x로 시작하지 않으면 반환x
+def hex_to_int(value):
+    if isinstance(value, str) and value.startswith('0x'):
+        try:
+            return int(value, 16)
+        except ValueError:
+            return value
+    return value
+    
+# 0x로 시작하지 않는 16진수도 int로 반환 but 일반 int형도 반환해버림
+def hex_to_int(value):
+    if isinstance(value, str) and value.startswith('0x'):
+        try:
+            return int(value, 16)
+        except ValueError:
+            return value
+    else:  # 0x로 시작하지 않는 경우
+        try:
+            return int(value, 16)
+        except ValueError:
+            return value
+
+'''
+'''
+def hex_to_int(value):
+    if isinstance(value, str):
+        if value.startswith('0x'):
+            try:
+                return int(value, 16)
+            except ValueError:
+                return value
+        else:
+            try:
+                # int_value = int(value)
+                return int(value)
+            except ValueError:
+                return value
+    else:  # 문자열이 아닌 경우 그대로 반환
+        return value
+'''
+'''
+# 16진수 -> int
+def hex_to_int(value):
+    if isinstance(value, str):
+        if value.startswith('0x'):
+            try:
+                return int(value, 16)
+            except ValueError:
+                return value
+        else:
+            try:
+                return int(value, 16)
+            except ValueError:
+                try:
+                    return int(value)
+                except ValueError:
+                    try:
+                        return float(value)
+                    except ValueError:
+                        return value
+    else:  # 문자열이 아닌 경우 그대로 반환
+        return value
+'''
+def hex_to_int(value):
+    if isinstance(value, int):
+        return value
+    elif isinstance(value, str):
+        if value.startswith('0x'):
+            try:
+                return int(value, 16)
+            except ValueError:
+                return value
+        else:
+            try:
+                return int(value, 16)
+            except ValueError:
+                return value
+    else:
+        return value
+
+def convert_hex_to_int(df):
+    df['mqtt.protoname'] = df['mqtt.protoname'].map({'MQTT':1, '0':0})
+
+    for column in df.columns:
+        df[column] = df[column].apply(hex_to_int)
+    return df
+
+print('\n ### hex to int! ###\n')
+xben = convert_hex_to_int(xben)
+xmal = convert_hex_to_int(xmal)
+print('\nxben.dtypes :\n', xben.dtypes)
+print('\nxmal.dtypes :\n', xmal.dtypes)
+
+'''
+# print('\n ### header ###\n', xben['mqtt.hdrflags'].describe()) # int64
+print(xmal['mqtt.conflags'].describe()) # float64
+print(xmal['mqtt.hdrflags'].describe()) # float64
+print(xmal['mqtt.msg'].describe()) # int 64
+print(xmal['mqtt.protoname'].describe()) # int64
+'''
+
+# dataframe -> csv
+print('\n### to_numpy() ###\n')
+xben = xben.to_numpy()
+xmal = xmal.to_numpy()
+# print(xben)
+# print(xben.shape)
+# print(xmal.shape)
+
+print('\n### astype(np.float32) ###\n')
+xben = xben.astype(np.float64)
+xmal = xmal.astype(np.float64)
+# print(xben)
+# print(xben.shape)
+# print(xmal)
+# print(xmal.shape)
+
+print("\n##### X_test_ben max #####")
+print(np.max(xben))
+'''
+print("\n##### X_test_ben min #####")
+print(xben.min())
+
+print("\n##### X_test_mal max #####")
+print(xmal.max())
+
+print("\n##### X_test_mal min #####")
+print(xmal.min())
+
+pd.DataFrame(xben).to_csv('D:\workspace\GAN\swGAN\data\\xben_noHex(24.03.19).csv')
+pd.DataFrame(xmal).to_csv('D:\workspace\GAN\swGAN\data\\xmal_noHex(24.03.19).csv')
+'''
