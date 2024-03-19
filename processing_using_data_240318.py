@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 '''
 f_data = "D:\workspace\GAN\swGAN\data\origin_data\mqttdataset_reduced.csv"
@@ -267,22 +268,84 @@ print('\n### astype(np.float32) ###\n')
 xben = xben.astype(np.float64)
 xmal = xmal.astype(np.float64)
 # print(xben)
-# print(xben.shape)
+print(xben.shape)
 # print(xmal)
 # print(xmal.shape)
 
-print("\n##### X_test_ben max #####")
-print(np.max(xben))
 '''
+print("\n##### X_test_ben max #####")
+# print(np.max(xben)) # nan
+
+print('\nxben.dtypes : ', xben.dtype) # float64
+xben_max = -np.inf
+
+for row in xben:
+    for value in row:
+        if value > xben_max:
+            xben_max = value
+
+print(xben_max) # 343439.0
+
+
 print("\n##### X_test_ben min #####")
-print(xben.min())
+print(np.min(xben)) # nan
+
+xben_min = np.inf
+
+for row in xben:
+    for value in row:
+        if value < xben_min:
+            xben_min = value
+
+print(xben_min) # 0.0
+
 
 print("\n##### X_test_mal max #####")
-print(xmal.max())
+print(np.max(xmal)) # 4.6325546778518176e+278
+
+print('\nxmal.dtypes : ', xmal.dtype) # float64
+xmal_max = -np.inf
+
+for row in xben:
+    for value in row:
+        if value > xmal_max:
+            xmal_max = value
+
+print(xmal_max) # 343439.0
+
 
 print("\n##### X_test_mal min #####")
-print(xmal.min())
+#print(np.min(xmal)) # 0.0
 
-pd.DataFrame(xben).to_csv('D:\workspace\GAN\swGAN\data\\xben_noHex(24.03.19).csv')
-pd.DataFrame(xmal).to_csv('D:\workspace\GAN\swGAN\data\\xmal_noHex(24.03.19).csv')
+xmal_min = np.inf
+
+for row in xben:
+    for value in row:
+        if value < xmal_min:
+            xmal_min = value
+
+print(xmal_min) # 0.0
 '''
+# pd.DataFrame(xben).to_csv('D:\workspace\GAN\swGAN\data\\xben_noHex(24.03.19).csv')
+# pd.DataFrame(xmal).to_csv('D:\workspace\GAN\swGAN\data\\xmal_noHex(24.03.19).csv')
+
+
+print("xben.shape=", xben.shape) # (1000,80)
+print("yben.shape=", yben.shape) # (1000,)
+print("xmal.shape=", xmal.shape) # (1000,80)
+print("ymal.shape=", ymal.shape) # (1000,)
+
+# train_size_a = 0.2
+# train_size_a = 0.4
+# train_size_a = 0.6
+train_size_a = 0.8
+
+xtrain_mal, xtest_mal, ytrain_mal, ytest_mal = train_test_split(xmal, ymal, train_size=train_size_a,
+                                                                test_size=0.20, shuffle=False)
+xtrain_ben, xtest_ben, ytrain_ben, ytest_ben = train_test_split(xben, yben, train_size=train_size_a,
+                                                                test_size=0.20, shuffle=False)
+
+print("xtrain_mal.shape=", xtrain_mal.shape) # (800, 80)
+print("xtest_mal.shape=", xtest_mal.shape) # (200,80)
+print("ytrain_mal.shape=", ytrain_mal.shape) # (800,)
+print("ytest_mal.shape=", ytest_mal.shape) # (200,)
