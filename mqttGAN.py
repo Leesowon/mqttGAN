@@ -15,6 +15,7 @@ import os
 from keras import models, layers, optimizers
 from keras.datasets import mnist
 import keras.backend as K
+from sklearn.model_selection import train_test_split
 
 print(K.image_data_format)
 
@@ -148,6 +149,64 @@ def load_data2(filename):
 
     return (xmal, ymal), (xben, yben)
 
+def hex_to_int(value):
+    if isinstance(value, int):
+        return value
+    elif isinstance(value, str):
+        if value.startswith('0x'):
+            try:
+                return int(value, 16)
+            except ValueError:
+                return value
+        else:
+            try:
+                return int(value, 16)
+            except ValueError:
+                return value
+    else:
+        return value
+
+def convert_hex_to_int(df):
+    df['mqtt.protoname'] = df['mqtt.protoname'].map({'MQTT':1, '0':0})
+
+    for column in df.columns:
+        df[column] = df[column].apply(hex_to_int)
+    return df
+
+
+def padding_data(data, data_type):
+    # data = pd.read_csv(f)
+
+    # print(data.head())
+
+    # print("##### processing #####")
+    # data = data.drop('target', axis=1)
+    # print(data.head())
+
+    # 데이터 프레임 열 개수 확인
+    num = data.shape[1]  # 3
+    # print('origin_data column : ', num)
+
+    # 80개 열을 가진 데이터 프레임 생성
+    new_data = pd.DataFrame()
+
+    # new_line 생성
+    for i in range(num):
+        new_data[data.columns[i]] = data[data.columns[i]]
+
+    for i in range(num, 80):
+        new_data['new_col_' + str(i - num)] = 0  # 새로운 열에 0 채우기
+
+    new_num = data.shape[1]  # 80
+    # print(new_data)
+    process_data = 'D:/workspace/GAN/swGAN/data/data_' + data_type + '_make_80_colums.csv'
+    # print(file_name)
+
+    # print('##### padding data size : ', new_data.shape, '#####')
+    # 저장
+    new_data.to_csv(process_data, index=False)
+    return new_data
+
 
 def train(args):
     BATCH_SIZE = args.batch_size
@@ -177,17 +236,48 @@ def train(args):
     xmal = pd.read_csv(f_mal)
     ymal = np.zeros(num_of_mal)
 
-    print('type : ', type(xben)) # <class 'pandas.core.frame.DataFrame'>
+    # hex 값 int로 변환
+    xben = convert_hex_to_int(xben)
+    xmal = convert_hex_to_int(xmal)
 
-
-    X_train = (X_train.astype(np.float32) - 127.5) / 127.5
-    # The Conv2D op currently only supports the NHWC tensor format on the CPU. The op was given the format: NCHW
-    # X_train = X_train.reshape((X_train.shape[0], 1) + X_train.shape[1:]) # <-- NCHW format
-    X_train = X_train.reshape(X_train.shape + (1,))  # <-- NHWC format
+    # X_train = (X_train.astype(np.float32) - 127.5) / 127.5
+    ## The Conv2D op currently only supports the NHWC tensor format on the CPU. The op was given the format: NCHW
+    ## X_train = X_train.reshape((X_train.shape[0], 1) + X_train.shape[1:]) # <-- NCHW format
+    # X_train = X_train.reshape(X_train.shape + (1,))  # <-- NHWC format
     # 채널 차원 추가
     # 딥러닝 프레임워크에서 요구되는 데이터 형식에 일치시키기 위하여
 
-    print('after reshape : ', X_train.shape) # (32, 28, 28, 1)
+    xben = padding_data(xben, 'ben')
+    yben = np.zeros(num_of_normal)
+    xmal = padding_data(xmal, 'mal')
+    ymal = np.ones(num_of_mal)
+
+    # print('after reshape : ', X_train.shape) # (32, 28, 28, 1)
+    xben = xben.to_numpy()
+    xmal = xmal.to_numpy()
+
+    xben = xben.astype(np.float64)
+    xmal = xmal.astype(np.float64)
+
+    print("xben.shape=", xben.shape)  # (1000,80)
+    print("yben.shape=", yben.shape)  # (1000,)
+    print("xmal.shape=", xmal.shape)  # (1000,80)
+    print("ymal.shape=", ymal.shape)  # (1000,)
+
+    # train_size_a = 0.2
+    # train_size_a = 0.4
+    # train_size_a = 0.6
+    train_size_a = 0.8
+
+    xtrain_mal, xtest_mal, ytrain_mal, ytest_mal = train_test_split(xmal, ymal, train_size=train_size_a,
+                                                                    test_size=0.20, shuffle=False)
+    xtrain_ben, xtest_ben, ytrain_ben, ytest_ben = train_test_split(xben, yben, train_size=train_size_a,
+                                                                    test_size=0.20, shuffle=False)
+
+    print("xtrain_mal.shape=", xtrain_mal.shape)  # (800, 19)
+    print("xtest_mal.shape=", xtest_mal.shape)  # (200,80)
+    print("ytrain_mal.shape=", ytrain_mal.shape)  # (800,)
+    print("ytest_mal.shape=", ytest_mal.shape)  # (200,)
 
     gan = GAN(input_dim) # input_dim = 10
 
